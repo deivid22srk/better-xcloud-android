@@ -1,6 +1,7 @@
 package com.betterxcloud.app
 
 import android.app.Application
+import android.util.Log
 import android.webkit.WebView
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
@@ -35,8 +36,21 @@ class BxApp : Application() {
         internal set
 
     override fun onCreate() {
-        super.onCreate()
+        // IMPORTANT: assign the singleton BEFORE super.onCreate().
+        // If super.onCreate() (or any library initialised by it) throws, the
+        // system falls back to a base android.app.Application instance, which
+        // would then cause a ClassCastException when an activity later does
+        // `application as BxApp`. Setting `instance` first means callers can
+        // still reach this BxApp via `BxApp.instance` even in degraded mode.
         instance = this
+        try {
+            super.onCreate()
+        } catch (t: Throwable) {
+            Log.e(TAG, "super.onCreate() threw — process may be in degraded mode", t)
+            // Don't rethrow: letting Android fall back to base Application
+            // triggers a ClassCastException later. Keep this BxApp instance
+            // alive so activities using BxApp.instance still work.
+        }
     }
 
     fun setSession(state: SessionState, gamertag: String? = null, avatarUrl: String? = null) {
@@ -67,8 +81,19 @@ class BxApp : Application() {
     }
 
     companion object {
+        private const val TAG = "BxApp"
+
         @Volatile
         lateinit var instance: BxApp
             private set
+
+        /**
+         * Safe accessor used by activities that previously did `application as BxApp`.
+         * Returns null when the manifest's `android:name` was not honoured (e.g.
+         * library manifest merger overrode it, or the system fell back to the
+         * base Application class). Callers should check for null and surface a
+         * clear error instead of crashing with a ClassCastException.
+         */
+        fun instanceOrNull(): BxApp? = if (::instance.isInitialized) instance else null
     }
 }

@@ -26,8 +26,19 @@ class MainActivity : AppCompatActivity() {
 
         // Keep splash visible until either the auth state resolves OR 2.5s pass,
         // whichever comes first — gives the WebView a moment to pick up cookies.
+        //
+        // NOTE: previously this did `application as BxApp`, which crashed with
+        // ClassCastException on devices where the system fell back to the base
+        // Application class (e.g. after an in-place upgrade with stale app data).
+        // We now use the BxApp.instance singleton, assigned in BxApp.onCreate
+        // before super.onCreate() — see BxApp.kt for the rationale.
         var authResolved = false
-        val app = application as BxApp
+        val app = BxApp.instanceOrNull() ?: run {
+            Log.e(TAG, "BxApp.instance is null — manifest android:name not honoured. " +
+                    "Finishing activity to avoid ClassCastException.")
+            finish()
+            return
+        }
         val contentReadyObserver = Observer<BxApp.SessionState> { state ->
             if (state == BxApp.SessionState.SIGNED_IN || state == BxApp.SessionState.SIGNED_OUT) {
                 authResolved = true
@@ -126,7 +137,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setupSessionObserver() {
-        (application as BxApp).sessionState.observe(this) { state ->
+        BxApp.instance.sessionState.observe(this) { state ->
             when (state) {
                 BxApp.SessionState.SIGNED_IN -> {
                     binding.layoutSignedOut.root.visibility = View.GONE

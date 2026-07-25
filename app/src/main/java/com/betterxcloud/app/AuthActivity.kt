@@ -92,7 +92,7 @@ class AuthActivity : AppCompatActivity() {
                 }
             }
             sessionObserver = obs
-            (application as BxApp).sessionState.observe(this, obs)
+            BxApp.instance.sessionState.observe(this, obs)
         }
         BxApp.instance.bridge?.startPolling()
     }
@@ -105,7 +105,7 @@ class AuthActivity : AppCompatActivity() {
     override fun onDestroy() {
         // Detach (but DON'T destroy) the WebView so it survives across activity recreations.
         BxApp.instance.detachWebView()
-        sessionObserver?.let { (application as BxApp).sessionState.removeObserver(it) }
+        sessionObserver?.let { BxApp.instance.sessionState.removeObserver(it) }
         sessionObserver = null
         super.onDestroy()
     }
@@ -114,7 +114,7 @@ class AuthActivity : AppCompatActivity() {
         (webView.parent as? android.view.ViewGroup)?.removeView(webView)
         binding.webviewContainer.addView(webView)
         // If already signed in, just finish
-        if ((application as BxApp).sessionState.value == BxApp.SessionState.SIGNED_IN) {
+        if (BxApp.instance.sessionState.value == BxApp.SessionState.SIGNED_IN) {
             finish()
         }
     }
@@ -147,11 +147,11 @@ class AuthActivity : AppCompatActivity() {
         webView.webViewClient = AuthWebViewClient(this)
         webView.webChromeClient = AuthChromeClient(this)
 
-        val bridge = XcloudBridge(application as BxApp, webView)
+        val bridge = XcloudBridge(BxApp.instance, webView)
         webView.addJavascriptInterface(bridge, "BxAndroid")
 
         // Register with the app singleton
-        (application as BxApp).attachWebView(webView, bridge)
+        BxApp.instance.attachWebView(webView, bridge)
 
         binding.webviewContainer.addView(webView)
     }
@@ -244,7 +244,7 @@ class AuthActivity : AppCompatActivity() {
             super.onPageFinished(view, url)
             view?.let { activity.injectBetterXcloud(it) }
             // Start polling for auth state
-            (activity.application as BxApp).bridge?.startPolling()
+            (activity.application as? BxApp)?.bridge?.startPolling()
         }
     }
 
