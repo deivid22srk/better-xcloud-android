@@ -27,14 +27,19 @@ class MainActivity : AppCompatActivity() {
         // Keep splash visible until either the auth state resolves OR 2.5s pass,
         // whichever comes first — gives the WebView a moment to pick up cookies.
         var authResolved = false
-        val app = application as BxApp
-        val contentReadyObserver = Observer<BxApp.SessionState> { state ->
-            if (state == BxApp.SessionState.SIGNED_IN || state == BxApp.SessionState.SIGNED_OUT) {
-                authResolved = true
+        val app = application as? BxApp
+        if (app == null) {
+            Log.e("MainActivity", "Application is not BxApp — manifest misconfiguration")
+            splash.setKeepOnScreenCondition { false }
+        } else {
+            val contentReadyObserver = Observer<BxApp.SessionState> { state ->
+                if (state == BxApp.SessionState.SIGNED_IN || state == BxApp.SessionState.SIGNED_OUT) {
+                    authResolved = true
+                }
             }
+            app.sessionState.observe(this, contentReadyObserver)
+            splash.setKeepOnScreenCondition { !authResolved }
         }
-        app.sessionState.observe(this, contentReadyObserver)
-        splash.setKeepOnScreenCondition { !authResolved }
 
         // Edge-to-edge
         WindowCompat.setDecorFitsSystemWindows(window, true)
@@ -126,7 +131,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setupSessionObserver() {
-        (application as BxApp).sessionState.observe(this) { state ->
+        BxApp.instance.sessionState.observe(this) { state ->
             when (state) {
                 BxApp.SessionState.SIGNED_IN -> {
                     binding.layoutSignedOut.root.visibility = View.GONE

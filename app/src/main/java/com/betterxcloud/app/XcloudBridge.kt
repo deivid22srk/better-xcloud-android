@@ -192,7 +192,7 @@ class XcloudBridge(private val app: BxApp, private val webView: WebView) {
     }
 
     private fun httpGet(urlString: String, cookies: String): String {
-        Log.d(logTag, "httpGet: $urlString")
+        Log.i(logTag, "httpGet URL: $urlString")
         val conn = URL(urlString).openConnection() as HttpURLConnection
         conn.requestMethod = "GET"
         conn.setRequestProperty("Cookie", cookies)

@@ -5,7 +5,7 @@ plugins {
 
 android {
     namespace = "com.betterxcloud.app"
-    compileSdk = 34
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "com.betterxcloud.app"
