@@ -192,6 +192,7 @@ class XcloudBridge(private val app: BxApp, private val webView: WebView) {
     }
 
     private fun httpGet(urlString: String, cookies: String): String {
+        Log.d(logTag, "httpGet: $urlString")
         val conn = URL(urlString).openConnection() as HttpURLConnection
         conn.requestMethod = "GET"
         conn.setRequestProperty("Cookie", cookies)
@@ -199,7 +200,14 @@ class XcloudBridge(private val app: BxApp, private val webView: WebView) {
         conn.setRequestProperty("Accept", "application/json")
         conn.connectTimeout = 15_000
         conn.readTimeout = 15_000
-        return conn.inputStream.bufferedReader().use(BufferedReader::readText)
+        val code = conn.responseCode
+        Log.d(logTag, "httpGet response: $code")
+        if (code in 200..299) {
+            return conn.inputStream.bufferedReader().use(BufferedReader::readText)
+        }
+        val errorBody = conn.errorStream?.bufferedReader()?.readText() ?: ""
+        Log.e(logTag, "httpGet error $code: $errorBody")
+        throw java.io.FileNotFoundException("$code: $urlString")
     }
 
     /**
