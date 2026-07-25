@@ -150,8 +150,8 @@ class XcloudBridge(private val app: BxApp, private val webView: WebView) {
                         return@Thread
                     }
 
-                    val bigIdsParam = ids.joinToString("&") { "bigId=${java.net.URLEncoder.encode(it, "UTF-8")}" }
-                    val detailsUrl = "${BxConstants.DISPLAY_CATALOG_URL}?$bigIdsParam&market=$market&language=$lang&fieldsTemplate=details"
+                    val bigIdsParam = ids.joinToString("&") { "bigIds=${java.net.URLEncoder.encode(it, "UTF-8")}" }
+                    val detailsUrl = "${BxConstants.DISPLAY_CATALOG_URL}?$bigIdsParam&market=$market&languages=$lang&fieldsTemplate=details"
                     val detailsJson = httpGet(detailsUrl, cookies)
                     val detailsObj = JSONObject(detailsJson)
                     val products = detailsObj.optJSONArray("Products") ?: JSONArray()
@@ -159,23 +159,26 @@ class XcloudBridge(private val app: BxApp, private val webView: WebView) {
                     val games = mutableListOf<XcloudGame>()
                     for (i in 0 until products.length()) {
                         val p = products.optJSONObject(i) ?: continue
-                        val images = p.optJSONArray("Images") ?: JSONArray()
+                        val lp = p.optJSONArray("LocalizedProperties")?.optJSONObject(0) ?: continue
+                        val images = lp.optJSONArray("Images") ?: JSONArray()
                         var imageUrl = ""
                         for (j in 0 until images.length()) {
                             val img = images.optJSONObject(j) ?: continue
                             val purpose = img.optString("ImagePurpose")
-                            if (purpose == "FeaturePromotionalArt" || purpose == "BoxArt") {
-                                imageUrl = img.optString("Uri", "")
+                            if (purpose == "Poster" || purpose == "BoxArt" || purpose == "SuperHeroArt") {
+                                imageUrl = img.optString("Uri", "").removePrefix("//").let { "https://$it" }
                                 break
                             }
-                            if (j == 0) imageUrl = img.optString("Uri", "")
+                            if (j == 0) imageUrl = img.optString("Uri", "").removePrefix("//").let { "https://$it" }
                         }
+                        val title = lp.optString("ProductTitle", "")
+                        if (title.isBlank()) continue
                         games.add(XcloudGame(
                             id = p.optString("ProductId", ""),
-                            title = p.optString("Title", "Unknown"),
+                            title = title,
                             imageUrl = imageUrl,
-                            publisherName = p.optString("PublisherName", ""),
-                            releaseDate = p.optString("ReleaseDate", ""),
+                            publisherName = lp.optString("PublisherName", ""),
+                            releaseDate = p.optString("LastModifiedDate", ""),
                         ))
                     }
 
