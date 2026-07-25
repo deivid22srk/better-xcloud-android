@@ -27,11 +27,12 @@ class BxApp : Application() {
     /** The shared WebView — created lazily, kept across activity recreations. */
     @Volatile
     var sharedWebView: WebView? = null
-        private set
+        internal set
 
     /** JS bridge exposed as window.BxAndroid on the shared WebView. */
     @Volatile
     var bridge: XcloudBridge? = null
+        internal set
 
     override fun onCreate() {
         super.onCreate()
@@ -53,6 +54,16 @@ class BxApp : Application() {
         // Don't destroy — keep the WebView alive for the next activity to attach.
         // The sharedWebView's parent is cleared by the activity on finish.
         sharedWebView?.let { (it.parent as? android.view.ViewGroup)?.removeView(it) }
+    }
+
+    /**
+     * Clears the shared WebView reference (used by sign-out). The activity that
+     * called this is responsible for actually destroying the WebView via
+     * WebView.destroy() after clearing cookies/storage.
+     */
+    fun clearWebView() {
+        sharedWebView = null
+        bridge = null
     }
 
     companion object {

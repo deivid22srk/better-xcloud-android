@@ -89,8 +89,7 @@ class MainActivity : AppCompatActivity() {
                         android.webkit.WebStorage.getInstance().deleteAllData()
                         android.webkit.CookieManager.getInstance().removeAllCookies(null)
                     }
-                    BxApp.instance.sharedWebView = null
-                    BxApp.instance.bridge = null
+                    BxApp.instance.clearWebView()
                     BxApp.instance.setSession(BxApp.SessionState.SIGNED_OUT)
                     startActivity(Intent(this, AuthActivity::class.java))
                     true
