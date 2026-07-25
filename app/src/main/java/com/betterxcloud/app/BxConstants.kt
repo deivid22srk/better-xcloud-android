@@ -41,10 +41,71 @@ object BxConstants {
         "https://catalog.gamepass.com/sigls/v2?id=$galleryId&market=$market&language=$language"
 
     /**
-     * Display catalog endpoint — returns title details (title, image, publisher, etc.)
-     * for one or more bigIds. POST with JSON body.
+     * Display catalog endpoint (LEGACY, v7) — kept for backwards compat.
+     * Returns title details for one or more bigIds via GET with query params.
      */
     const val DISPLAY_CATALOG_URL = "https://displaycatalog.mp.microsoft.com/v7.0/products"
+
+    // ------------------------------------------------------------------
+    // play.xbox.com modern endpoints (discovered by reverse-engineering
+    // the play.xbox.com SPA bundles — see docs/owned-games-analysis-v2.md)
+    // ------------------------------------------------------------------
+
+    /**
+     * Catalog v3 endpoint — POST with body {"Products": [bigId, ...]}.
+     * Returns rich metadata: title, publisher, keyArts (covers), xcloud.cloudId,
+     * subscriptionDates (indicates Game Pass), prices, contentRating.
+     *
+     * Mandatory headers: MS-CV, Calling-App-Name.
+     * The `hydration` query param must be one of the codename values used by
+     * the play.xbox.com SPA (verified empirically):
+     *   - "BaysideLowTopaz0"  → standard full hydration (used by Library page)
+     *   - "RemoteHighSapphire0" → alternate hydration (also valid)
+     */
+    const val CATALOG_V3_PRODUCTS_URL = "https://catalog.gamepass.com/v3/products"
+    const val HYDRATION_DEFAULT = "BaysideLowTopaz0"
+
+    /**
+     * Emerald (xboxcomfd) entitlements bulk endpoint — POST with body
+     * {"ProductIds": [productId, ...]}.
+     *
+     * Returns which products the user OWNS (purchased, not Game Pass):
+     *   {entitlements: {<id>: {isOwned: true, status: "Active", ...}},
+     *    recurrences: {...}, continuationToken?: "..."}
+     *
+     * Auth: XSTS token from the XBXXtkhttp://mp.microsoft.com/ cookie
+     * (NOT the xboxlive.com or gssv.xboxlive.com tokens).
+     */
+    const val EMERALD_BASE_URL = "https://emerald.xboxservices.com/xboxcomfd"
+    const val ENTITLEMENTS_BULK_PATH = "/entitlements/bulk"
+
+    /** XSTS token relying parties (audiences) — used to pick the right cookie. */
+    object RelyingParty {
+        const val XBOX_LIVE = "xboxlive.com"
+        const val MS_STORE = "mp.microsoft.com"
+        const val X_CLOUD = "gssv.xboxlive.com"
+    }
+
+    /** Game Pass subscription SKU IDs (in subscriptionDates). */
+    object SubscriptionSku {
+        const val GPU = "CFQ7TTC0K6L8"        // Game Pass Ultimate
+        const val PC_GP = "CFQ7TTC0KGQ8"       // PC Game Pass
+        const val CORE = "CFQ7TTC0P85B"        // Game Pass Core (ex-Live Gold)
+        const val STANDARD = "CFQ7TTC0HCHJ"    // Game Pass Standard
+
+        /** All known Game Pass SKUs — used to test if a product is in Game Pass. */
+        val ALL = setOf(GPU, PC_GP, CORE, STANDARD)
+    }
+
+    /** imagePurpose values used in catalog v3 keyArts (from play.xbox.com bundle). */
+    object ImagePurpose {
+        const val POSTER = 6          // vertical poster (best for grid)
+        const val BOX_ART = 2         // square box art
+        const val TILE = 5            // small tile
+        const val HERO = 8            // horizontal hero banner
+        const val FEATURE_PROMO = 11  // vertical feature promo
+        const val LOGO = 10           // overlaid logo
+    }
 
     // ------------------------------------------------------------------
     // LocalStorage keys used by the Better xCloud userscript

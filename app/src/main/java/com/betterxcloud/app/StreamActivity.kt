@@ -56,7 +56,7 @@ class StreamActivity : AppCompatActivity() {
         // Use the shared WebView — keeps session, cookies, localStorage.
         webView = BxApp.instance.sharedWebView ?: WebView(this).also {
             // Cold path: shouldn't normally happen, but handle gracefully.
-            BxApp.instance.attachWebView(it, XcloudBridge(application as BxApp, it))
+            BxApp.instance.attachWebView(it, XcloudBridge(BxApp.instance, it))
         }
         (webView.parent as? android.view.ViewGroup)?.removeView(webView)
         container.addView(webView)

@@ -13,11 +13,18 @@ import androidx.lifecycle.Observer
 import androidx.recyclerview.widget.GridLayoutManager
 import com.betterxcloud.app.databinding.ActivityMainBinding
 import com.google.android.material.snackbar.Snackbar
+import com.google.android.material.tabs.TabLayout
 
 class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
     private lateinit var gamesAdapter: GamesAdapter
+
+    /** Snapshot of all games currently loaded — used to filter per-tab. */
+    private var allGames: List<XcloudGame> = emptyList()
+
+    /** Currently selected tab — 0=All, 1=Purchased, 2=Game Pass. */
+    private var selectedTab: Int = 0
 
     override fun onCreate(savedInstanceState: Bundle?) {
         // Splash screen — must be called before super.onCreate
@@ -26,8 +33,19 @@ class MainActivity : AppCompatActivity() {
 
         // Keep splash visible until either the auth state resolves OR 2.5s pass,
         // whichever comes first — gives the WebView a moment to pick up cookies.
+        //
+        // NOTE: previously this did `application as BxApp`, which crashed with
+        // ClassCastException on devices where the system fell back to the base
+        // Application class (e.g. after an in-place upgrade with stale app data).
+        // We now use the BxApp.instance singleton, assigned in BxApp.onCreate
+        // before super.onCreate() — see BxApp.kt for the rationale.
         var authResolved = false
-        val app = application as BxApp
+        val app = BxApp.instanceOrNull() ?: run {
+            Log.e(TAG, "BxApp.instance is null — manifest android:name not honoured. " +
+                    "Finishing activity to avoid ClassCastException.")
+            finish()
+            return
+        }
         val contentReadyObserver = Observer<BxApp.SessionState> { state ->
             if (state == BxApp.SessionState.SIGNED_IN || state == BxApp.SessionState.SIGNED_OUT) {
                 authResolved = true
@@ -49,6 +67,7 @@ class MainActivity : AppCompatActivity() {
 
         setupToolbar()
         setupRecyclerView()
+        setupTabs()
         setupSwipeRefresh()
         setupSessionObserver()
         setupLibraryObserver()
@@ -60,8 +79,9 @@ class MainActivity : AppCompatActivity() {
             Log.i(TAG, "Cold start — launching AuthActivity")
             startActivity(Intent(this, AuthActivity::class.java))
         } else {
-            // Trigger a library refresh in case the WebView already has the auth
-            BxApp.instance.bridge?.fetchLibraryAndCache()
+            // Trigger a library refresh using the modern classify flow
+            // (separates purchased games from Game Pass via emerald entitlements).
+            BxApp.instance.bridge?.fetchLibraryAndClassify()
         }
 
         // Stop the splash observer after a max of 2.5s regardless
@@ -76,7 +96,7 @@ class MainActivity : AppCompatActivity() {
                     true
                 }
                 R.id.action_refresh -> {
-                    BxApp.instance.bridge?.fetchLibraryAndCache()
+                    BxApp.instance.bridge?.fetchLibraryAndClassify()
                     true
                 }
                 R.id.action_sign_out -> {
@@ -101,9 +121,12 @@ class MainActivity : AppCompatActivity() {
 
     private fun setupRecyclerView() {
         gamesAdapter = GamesAdapter { game ->
-            // Click on a game → launch the stream activity with the deep link
+            // Click on a game → launch the stream activity with the deep link.
+            // Prefer the xcloud.cloudId (modern play.xbox.com identifier) when
+            // available; fall back to the BigId (storeId) used by xbox.com/play.
+            val titleId = game.cloudId.takeIf { it.isNotEmpty() } ?: game.id
             val intent = Intent(this, StreamActivity::class.java).apply {
-                putExtra(StreamActivity.EXTRA_TITLE_ID, game.id)
+                putExtra(StreamActivity.EXTRA_TITLE_ID, titleId)
                 putExtra(StreamActivity.EXTRA_TITLE_NAME, game.title)
             }
             startActivity(intent)
@@ -118,15 +141,83 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    /**
+     * Material 3 tabs: Todos / Comprados / Game Pass.
+     * Filters [allGames] based on the selected tab and re-renders the grid.
+     * Tab labels include live counts (e.g. "Comprados (12)").
+     */
+    private fun setupTabs() {
+        binding.tabsLibrary.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
+            override fun onTabSelected(tab: TabLayout.Tab) {
+                selectedTab = tab.position
+                applyFilterToGrid()
+            }
+            override fun onTabUnselected(tab: TabLayout.Tab) {}
+            override fun onTabReselected(tab: TabLayout.Tab) {}
+        })
+    }
+
+    /**
+     * Filters [allGames] based on [selectedTab] and submits the filtered list
+     * to the adapter. Also updates the tab labels with counts.
+     */
+    private fun applyFilterToGrid() {
+        val purchased = allGames.count {
+            it.ownership == Ownership.PURCHASED || it.ownership == Ownership.BOTH
+        }
+        val gamePass = allGames.count {
+            it.ownership == Ownership.GAME_PASS || it.ownership == Ownership.BOTH
+        }
+
+        // Update tab labels with counts
+        binding.tabsLibrary.getTabAt(0)?.text = getString(R.string.tab_all) + " (${allGames.size})"
+        binding.tabsLibrary.getTabAt(1)?.text = getString(R.string.tab_purchased) + " ($purchased)"
+        binding.tabsLibrary.getTabAt(2)?.text = getString(R.string.tab_game_pass) + " ($gamePass)"
+
+        // Filter for the selected tab
+        val filtered: List<XcloudGame> = when (selectedTab) {
+            1 -> allGames.filter {
+                it.ownership == Ownership.PURCHASED || it.ownership == Ownership.BOTH
+            }
+            2 -> allGames.filter {
+                it.ownership == Ownership.GAME_PASS || it.ownership == Ownership.BOTH
+            }
+            else -> allGames
+        }
+
+        if (filtered.isEmpty() && allGames.isNotEmpty()) {
+            // The selected tab is empty (e.g. user has no purchased games yet)
+            binding.layoutEmptyState.root.visibility = View.VISIBLE
+            binding.recyclerGames.visibility = View.GONE
+            // Show a tab-specific empty message and hide the progress spinner
+            binding.layoutEmptyState.progressEmpty.visibility = View.GONE
+            binding.layoutEmptyState.txtEmptyMessage.text = when (selectedTab) {
+                1 -> getString(R.string.empty_purchased)
+                2 -> getString(R.string.empty_game_pass)
+                else -> getString(R.string.error_no_games)
+            }
+        } else if (allGames.isEmpty()) {
+            // Still loading or no games at all — show spinner + default text
+            binding.layoutEmptyState.root.visibility = View.VISIBLE
+            binding.layoutEmptyState.progressEmpty.visibility = View.VISIBLE
+            binding.layoutEmptyState.txtEmptyMessage.text = getString(R.string.loading_message)
+            binding.recyclerGames.visibility = View.GONE
+        } else {
+            binding.layoutEmptyState.root.visibility = View.GONE
+            binding.recyclerGames.visibility = View.VISIBLE
+            gamesAdapter.submitXcloudGames(filtered)
+        }
+    }
+
     private fun setupSwipeRefresh() {
         binding.swipeRefresh.setColorSchemeResources(R.color.md_theme_primary, R.color.md_theme_tertiary)
         binding.swipeRefresh.setOnRefreshListener {
-            BxApp.instance.bridge?.fetchLibraryAndCache()
+            BxApp.instance.bridge?.fetchLibraryAndClassify()
         }
     }
 
     private fun setupSessionObserver() {
-        (application as BxApp).sessionState.observe(this) { state ->
+        BxApp.instance.sessionState.observe(this) { state ->
             when (state) {
                 BxApp.SessionState.SIGNED_IN -> {
                     binding.layoutSignedOut.root.visibility = View.GONE
@@ -143,7 +234,7 @@ class MainActivity : AppCompatActivity() {
                 }
                 BxApp.SessionState.ERROR -> {
                     Snackbar.make(binding.root, R.string.error_no_games, Snackbar.LENGTH_INDEFINITE)
-                        .setAction(R.string.error_retry) { BxApp.instance.bridge?.fetchLibraryAndCache() }
+                        .setAction(R.string.error_retry) { BxApp.instance.bridge?.fetchLibraryAndClassify() }
                         .show()
                 }
                 BxApp.SessionState.LOADING -> {
@@ -156,14 +247,8 @@ class MainActivity : AppCompatActivity() {
     private fun setupLibraryObserver() {
         BxApp.instance.bridge?.library?.observe(this) { games ->
             binding.swipeRefresh.isRefreshing = false
-            if (games.isEmpty()) {
-                binding.layoutEmptyState.root.visibility = View.VISIBLE
-                binding.recyclerGames.visibility = View.GONE
-            } else {
-                binding.layoutEmptyState.root.visibility = View.GONE
-                binding.recyclerGames.visibility = View.VISIBLE
-                gamesAdapter.submitXcloudGames(games)
-            }
+            allGames = games
+            applyFilterToGrid()
         }
     }
 

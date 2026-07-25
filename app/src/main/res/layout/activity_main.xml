@@ -24,6 +24,32 @@
             app:menu="@menu/main_menu"
             style="@style/Widget.Material3.Toolbar.Surface" />
 
+        <com.google.android.material.tabs.TabLayout
+            android:id="@+id/tabs_library"
+            style="@style/Widget.Material3.TabLayout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:tabMode="scrollable"
+            app:tabIndicatorAnimationMode="elastic"
+            app:tabRippleColor="?attr/colorControlHighlight"
+            android:background="@color/md_theme_background">
+
+            <com.google.android.material.tabs.TabItem
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/tab_all" />
+
+            <com.google.android.material.tabs.TabItem
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/tab_purchased" />
+
+            <com.google.android.material.tabs.TabItem
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/tab_game_pass" />
+        </com.google.android.material.tabs.TabLayout>
+
     </com.google.android.material.appbar.AppBarLayout>
 
     <!-- Signed-out state -->

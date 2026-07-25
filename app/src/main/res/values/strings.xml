@@ -111,4 +111,21 @@
     <string name="about_github">Ver no GitHub</string>
     <string name="about_disclaimer">Aviso legal</string>
     <string name="about_disclaimer_text">Este projeto não é afiliado à Microsoft, Xbox ou redphx. Use apenas com uma assinatura Xbox Game Pass Ultimate válida. Todos os trademarks pertencem à Microsoft.</string>
+
+    <!-- Library tabs (Material 3) -->
+    <string name="tab_all">Todos</string>
+    <string name="tab_purchased">Comprados</string>
+    <string name="tab_game_pass">Game Pass</string>
+
+    <!-- Ownership chips -->
+    <string name="chip_game_pass">Game Pass</string>
+    <string name="chip_purchased">Comprado</string>
+    <string name="chip_both">Comprado + GP</string>
+    <string name="chip_no_cloud">Sem cloud</string>
+
+    <!-- Empty state per tab -->
+    <string name="empty_purchased">Você ainda não comprou nenhum jogo que suporte cloud.
+        Jogos comprados na Microsoft Store aparecem aqui automaticamente.</string>
+    <string name="empty_game_pass">Nenhum jogo do Game Pass disponível no momento.
+        Verifique sua assinatura.</string>
 </resources>

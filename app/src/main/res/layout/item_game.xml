@@ -39,6 +39,22 @@
                 android:layout_gravity="bottom"
                 android:background="@drawable/scrim_bottom" />
 
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chip_ownership"
+                style="@style/Widget.Material3.Chip.Assist.Elevated"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="bottom|end"
+                android:layout_margin="6dp"
+                android:paddingStart="4dp"
+                android:paddingEnd="4dp"
+                android:textSize="9sp"
+                android:minHeight="20dp"
+                android:text="@string/chip_game_pass"
+                android:visibility="gone"
+                tools:visibility="visible"
+                tools:text="Game Pass" />
+
         </FrameLayout>
 
         <LinearLayout
