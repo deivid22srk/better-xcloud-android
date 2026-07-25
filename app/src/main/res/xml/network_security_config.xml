@@ -11,5 +11,7 @@
         <domain includeSubdomains="true">microsoft.com</domain>
         <domain includeSubdomains="true">msftauth.net</domain>
         <domain includeSubdomains="true">xboxlive.com</domain>
+        <domain includeSubdomains="true">gamepass.com</domain>
+        <domain includeSubdomains="true">mp.microsoft.com</domain>
     </domain-config>
 </network-security-config>

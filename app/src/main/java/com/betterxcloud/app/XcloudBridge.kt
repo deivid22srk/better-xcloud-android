@@ -3,31 +3,21 @@ package com.betterxcloud.app
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
+import android.webkit.CookieManager
 import android.webkit.JavascriptInterface
 import android.webkit.WebView
 import org.json.JSONArray
 import org.json.JSONObject
+import java.io.BufferedReader
+import java.net.HttpURLConnection
+import java.net.URL
 
-/**
- * JavaScript bridge exposed to the WebView as `window.BxAndroid`.
- *
- * Responsibilities:
- * 1. Detect when the user is signed in (the userscript / xbox.com SPA sets
- *    `window.xbcUser.isSignedIn` once authentication completes).
- * 2. Read the auth session (gamertag, avatar, gsToken) from the page's JS context.
- * 3. Read/write Better xCloud settings in localStorage.
- * 4. Fetch the user's Game Pass Cloud library (uses the page's cookies via
- *    fetch() from the page context — no token juggling on the native side).
- * 5. Trigger a stream session (xbox.com/play deep-link).
- */
 class XcloudBridge(private val app: BxApp, private val webView: WebView) {
 
     private val handler = Handler(Looper.getMainLooper())
+    private val bgHandler = Handler(Looper.getMainLooper())
     private val logTag = "BxAndroid"
 
-    // ------------------------------------------------------------------
-    // Polling loop — invoked from Kotlin to detect auth state changes.
-    // ------------------------------------------------------------------
     private var pollCount = 0
 
     fun startPolling() {
@@ -41,8 +31,6 @@ class XcloudBridge(private val app: BxApp, private val webView: WebView) {
     private val pollRunnable = object : Runnable {
         override fun run() {
             pollCount++
-            // Ask the page if the user is signed in. The response comes back
-            // asynchronously via BxAndroid.onAuthState().
             webView.evaluateJavascript(
                 """
                 (function(){
@@ -59,15 +47,12 @@ class XcloudBridge(private val app: BxApp, private val webView: WebView) {
                 """.trimIndent(),
                 null
             )
-            // Also refresh the settings cache from localStorage each poll.
             webView.evaluateJavascript(
                 "(function(){ try { BxAndroid.onSettingsRead(localStorage.getItem('BetterXcloud') || '{}'); } catch(e){ BxAndroid.onSettingsRead('{}'); } })();",
                 null
             )
 
-            // Stop polling once we've seen a definite signed-in state.
             if (app.sessionState.value == BxApp.SessionState.SIGNED_IN) return
-            // Safety: stop after 60 polls (~90s) and assume signed-out.
             if (pollCount > 60) {
                 app.setSession(BxApp.SessionState.SIGNED_OUT)
                 return
@@ -75,10 +60,6 @@ class XcloudBridge(private val app: BxApp, private val webView: WebView) {
             handler.postDelayed(this, 1500)
         }
     }
-
-    // ------------------------------------------------------------------
-    // JS callbacks — invoked by the page via BxAndroid.<method>(...).
-    // ------------------------------------------------------------------
 
     @JavascriptInterface
     fun onAuthState(json: String) {
@@ -90,7 +71,6 @@ class XcloudBridge(private val app: BxApp, private val webView: WebView) {
             Log.i(logTag, "auth state: signedIn=$isSignedIn gamertag=$gamertag")
             if (isSignedIn) {
                 app.setSession(BxApp.SessionState.SIGNED_IN, gamertag, avatar)
-                // After sign-in, fetch the library once so it's ready when Home opens.
                 fetchLibraryAndCache()
             }
         } catch (t: Throwable) {
@@ -106,7 +86,6 @@ class XcloudBridge(private val app: BxApp, private val webView: WebView) {
     @JavascriptInterface
     fun onLibraryResult(json: String) {
         try {
-            // Persist to in-memory cache; the Home view-model will pick it up via LiveData.
             val arr = JSONArray(json)
             val games = mutableListOf<XcloudGame>()
             for (i in 0 until arr.length()) {
@@ -144,61 +123,80 @@ class XcloudBridge(private val app: BxApp, private val webView: WebView) {
     @JavascriptInterface
     fun version(): String = BuildConfig.VERSION_NAME
 
-    // ------------------------------------------------------------------
-    // Active operations — invoked from Kotlin (not from the page).
-    // ------------------------------------------------------------------
-
     private val _libraryCache = androidx.lifecycle.MutableLiveData<List<XcloudGame>>()
     val library: androidx.lifecycle.LiveData<List<XcloudGame>> = _libraryCache
 
-    /**
-     * Fetches the user's full Game Pass Cloud library by calling the catalog
-     * sigls endpoint from inside the page context (so auth cookies apply).
-     * Then fetches each title's details via the displaycatalog endpoint.
-     */
     fun fetchLibraryAndCache() {
-        // JavaScript that runs inside the page's fetch context. We use the
-        // sigls endpoint to get IDs, then call the displaycatalog batch endpoint
-        // to get titles + images in a single request.
-        val js = """
-            (async function(){
-              try {
-                const market = 'US';
-                const lang = (navigator.language || 'en-US');
-                const galleryId = '${BxConstants.Gallery.ALL}';
-                const siglsUrl = `https://catalog.gamepass.com/sigls/v2?id=${'$'}{galleryId}&market=${'$'}{market}&language=${'$'}{lang}`;
-                const siglsResp = await fetch(siglsUrl, {credentials: 'include'});
-                const sigls = await siglsResp.json();
-                // index 0 is metadata, skip it
-                const ids = sigls.slice(1).map(s => s.id).filter(Boolean);
-                if (!ids.length) {
-                  BxAndroid.onLibraryResult('[]');
-                  return;
+        bgHandler.post {
+            Thread {
+                try {
+                    val cookies = CookieManager.getInstance().getCookie("https://www.xbox.com") ?: ""
+                    val market = "US"
+                    val lang = "en-US"
+                    val galleryId = BxConstants.Gallery.ALL
+
+                    val siglsUrl = "https://catalog.gamepass.com/sigls/v2?id=$galleryId&market=$market&language=$lang"
+                    val siglsJson = httpGet(siglsUrl, cookies)
+                    val siglsArray = JSONArray(siglsJson)
+                    val ids = mutableListOf<String>()
+                    for (i in 1 until siglsArray.length()) {
+                        val obj = siglsArray.optJSONObject(i)
+                        val id = obj?.optString("id")
+                        if (id != null) ids.add(id)
+                    }
+
+                    if (ids.isEmpty()) {
+                        handler.post { _libraryCache.postValue(emptyList()) }
+                        return@Thread
+                    }
+
+                    val bigIdsParam = ids.joinToString("&") { "bigId=${java.net.URLEncoder.encode(it, "UTF-8")}" }
+                    val detailsUrl = "${BxConstants.DISPLAY_CATALOG_URL}?$bigIdsParam&market=$market&language=$lang&fieldsTemplate=details"
+                    val detailsJson = httpGet(detailsUrl, cookies)
+                    val detailsObj = JSONObject(detailsJson)
+                    val products = detailsObj.optJSONArray("Products") ?: JSONArray()
+
+                    val games = mutableListOf<XcloudGame>()
+                    for (i in 0 until products.length()) {
+                        val p = products.optJSONObject(i) ?: continue
+                        val images = p.optJSONArray("Images") ?: JSONArray()
+                        var imageUrl = ""
+                        for (j in 0 until images.length()) {
+                            val img = images.optJSONObject(j) ?: continue
+                            val purpose = img.optString("ImagePurpose")
+                            if (purpose == "FeaturePromotionalArt" || purpose == "BoxArt") {
+                                imageUrl = img.optString("Uri", "")
+                                break
+                            }
+                            if (j == 0) imageUrl = img.optString("Uri", "")
+                        }
+                        games.add(XcloudGame(
+                            id = p.optString("ProductId", ""),
+                            title = p.optString("Title", "Unknown"),
+                            imageUrl = imageUrl,
+                            publisherName = p.optString("PublisherName", ""),
+                            releaseDate = p.optString("ReleaseDate", ""),
+                        ))
+                    }
+
+                    handler.post { _libraryCache.postValue(games) }
+                } catch (t: Throwable) {
+                    Log.e(logTag, "fetchLibrary error", t)
+                    handler.post { _libraryCache.postValue(emptyList()) }
                 }
-                // Batch fetch details — displaycatalog accepts multiple bigIds.
-                const bigIdsParam = ids.map(id => 'bigId=' + encodeURIComponent(id)).join('&');
-                const detailsUrl = 'https://displaycatalog.mp.microsoft.com/v7.0/products?' + bigIdsParam + '&market=' + market + '&language=' + lang + '&fieldsTemplate=details';
-                const detailsResp = await fetch(detailsUrl, {credentials: 'include'});
-                const detailsJson = await detailsResp.json();
-                const products = (detailsJson.Products || []);
-                const out = products.map(p => ({
-                  id: p.ProductId || '',
-                  title: p.Title || 'Unknown',
-                  image: (p.Images || []).find(i => i.ImagePurpose === 'FeaturePromotionalArt')?.Uri
-                       || (p.Images || []).find(i => i.ImagePurpose === 'BoxArt')?.Uri
-                       || (p.Images || [])[0]?.Uri
-                       || '',
-                  publisher: p.PublisherName || '',
-                  releaseDate: p.ReleaseDate || '',
-                }));
-                BxAndroid.onLibraryResult(JSON.stringify(out));
-              } catch(e) {
-                BxAndroid.log('fetchLibrary error: ' + String(e));
-                BxAndroid.onLibraryResult('[]');
-              }
-            })();
-        """.trimIndent()
-        webView.evaluateJavascript(js, null)
+            }.start()
+        }
+    }
+
+    private fun httpGet(urlString: String, cookies: String): String {
+        val conn = URL(urlString).openConnection() as HttpURLConnection
+        conn.requestMethod = "GET"
+        conn.setRequestProperty("Cookie", cookies)
+        conn.setRequestProperty("User-Agent", BxConstants.DESKTOP_UA)
+        conn.setRequestProperty("Accept", "application/json")
+        conn.connectTimeout = 15_000
+        conn.readTimeout = 15_000
+        return conn.inputStream.bufferedReader().use(BufferedReader::readText)
     }
 
     /**
@@ -207,23 +205,23 @@ class XcloudBridge(private val app: BxApp, private val webView: WebView) {
      */
     fun persistSettings(settings: BxSettings) {
         val json = settings.toJsonString()
-        // localStorage.setItem is synchronous — safe to do in evaluateJavascript.
         val escaped = JSONObject().put("v", json).toString()
-        webView.evaluateJavascript(
-            "localStorage.setItem('BetterXcloud', JSON.parse('$escaped').v);",
-            null
-        )
+        handler.post {
+            webView.evaluateJavascript(
+                "localStorage.setItem('BetterXcloud', JSON.parse('$escaped').v);",
+                null
+            )
+        }
         BxSettingsStore.update(settings)
     }
 
-    /**
-     * Reads the current settings from localStorage (refreshes the cache).
-     */
     fun refreshSettings() {
-        webView.evaluateJavascript(
-            "(function(){ try { BxAndroid.onSettingsRead(localStorage.getItem('BetterXcloud') || '{}'); } catch(e){ BxAndroid.onSettingsRead('{}'); } })();",
-            null
-        )
+        handler.post {
+            webView.evaluateJavascript(
+                "(function(){ try { BxAndroid.onSettingsRead(localStorage.getItem('BetterXcloud') || '{}'); } catch(e){ BxAndroid.onSettingsRead('{}'); } })();",
+                null
+            )
+        }
     }
 }
 
