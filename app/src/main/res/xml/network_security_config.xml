@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <base-config cleartextTrafficPermitted="false">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+    <domain-config cleartextTrafficPermitted="false">
+        <domain includeSubdomains="true">xbox.com</domain>
+        <domain includeSubdomains="true">xcloud.com</domain>
+        <domain includeSubdomains="true">microsoft.com</domain>
+        <domain includeSubdomains="true">msftauth.net</domain>
+        <domain includeSubdomains="true">xboxlive.com</domain>
+    </domain-config>
+</network-security-config>
