@@ -1,8 +1,48 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!-- Material 3 baseline (dark) -->
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+
+    <color name="seed">#FF107C10</color>
+    <color name="md_theme_primary">#FF7ADC8B</color>
+    <color name="md_theme_onPrimary">#FF003913</color>
+    <color name="md_theme_primaryContainer">#FF00531E</color>
+    <color name="md_theme_onPrimaryContainer">#FF95F9A4</color>
+    <color name="md_theme_secondary">#FFB8CCB5</color>
+    <color name="md_theme_onSecondary">#FF243424</color>
+    <color name="md_theme_secondaryContainer">#FF3A4B39</color>
+    <color name="md_theme_onSecondaryContainer">#FFD4E8D0</color>
+    <color name="md_theme_tertiary">#FFA0CFCD</color>
+    <color name="md_theme_onTertiary">#FF003736</color>
+    <color name="md_theme_tertiaryContainer">#FF1F4E4D</color>
+    <color name="md_theme_onTertiaryContainer">#FFBCEBE9</color>
+    <color name="md_theme_error">#FFB3C1FF</color>
+    <color name="md_theme_onError">#FF002C8A</color>
+    <color name="md_theme_errorContainer">#FF2242B4</color>
+    <color name="md_theme_onErrorContainer">#FFDCE2FF</color>
+    <color name="md_theme_background">#FF0F140E</color>
+    <color name="md_theme_onBackground">#FFE1E4DB</color>
+    <color name="md_theme_surface">#FF141A12</color>
+    <color name="md_theme_onSurface">#FFE1E4DB</color>
+    <color name="md_theme_surfaceVariant">#FF424940</color>
+    <color name="md_theme_onSurfaceVariant">#FFC2C9BC</color>
+    <color name="md_theme_outline">#FF8C9387</color>
+    <color name="md_theme_outlineVariant">#FF424940</color>
+    <color name="md_theme_inverseSurface">#FFE1E4DB</color>
+    <color name="md_theme_inverseOnSurface">#FF2C3226</color>
+    <color name="md_theme_inversePrimary">#FF006D2B</color>
+    <color name="md_theme_scrim">#FF000000</color>
+
+    <!-- Surface levels (Material 3) -->
+    <color name="md_theme_surfaceContainerLowest">#FF0A0E08</color>
+    <color name="md_theme_surfaceContainerLow">#FF171E11</color>
+    <color name="md_theme_surfaceContainer">#FF1B2215</color>
+    <color name="md_theme_surfaceContainerHigh">#FF252D1F</color>
+    <color name="md_theme_surfaceContainerHighest">#FF303829</color>
+
+    <!-- Brand accent -->
     <color name="xbox_green">#FF107C10</color>
-    <color name="xbox_dark">#FF1A1A1A</color>
-    <color name="xcloud_bg">#FF000000</color>
+    <color name="xbox_dark">#FF0F140E</color>
+    <color name="xcloud_bg">#FF0F140E</color>
 </resources>

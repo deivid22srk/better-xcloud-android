@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <dimen name="game_card_spacing">8dp</dimen>
+    <dimen name="game_card_height">220dp</dimen>
+    <dimen name="game_card_corner">12dp</dimen>
+</resources>

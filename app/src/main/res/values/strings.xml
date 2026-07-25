@@ -1,5 +1,114 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Better xCloud</string>
+
+    <!-- Splash / loading -->
     <string name="loading_message">Carregando Xbox Cloud Gaming…</string>
+
+    <!-- Auth -->
+    <string name="auth_loading">Conectando ao Xbox Cloud Gaming…</string>
+    <string name="auth_failed">Falha ao conectar. Toque para tentar novamente.</string>
+
+    <!-- Home -->
+    <string name="home_title">Better xCloud</string>
+    <string name="home_subtitle">Sua biblioteca Game Pass Cloud</string>
+    <string name="home_signed_out">Você não está conectado</string>
+    <string name="home_sign_in">Entrar com a Microsoft</string>
+    <string name="home_sign_out">Sair</string>
+    <string name="home_refresh">Atualizar</string>
+    <string name="home_settings">Configurações</string>
+    <string name="home_search_hint">Buscar jogo…</string>
+
+    <!-- Gallery sections -->
+    <string name="gallery_all">Todos os jogos</string>
+    <string name="gallery_recently_added">Adicionados recentemente</string>
+    <string name="gallery_leaving_soon">Saindo em breve</string>
+    <string name="gallery_most_popular">Mais populares</string>
+    <string name="gallery_touch">Suporte a toque</string>
+    <string name="gallery_native_mkb">Mouse &amp; teclado nativos</string>
+
+    <!-- Game card -->
+    <string name="game_play">Jogar</string>
+    <string name="game_loading">Carregando…</string>
+    <string name="game_wait_time">Espera: %1$s</string>
+    <string name="game_no_wait">Sem fila</string>
+
+    <!-- Settings -->
+    <string name="settings_title">Configurações</string>
+    <string name="settings_section_stream">Streaming</string>
+    <string name="settings_section_controller">Controle</string>
+    <string name="settings_section_interface">Interface</string>
+    <string name="settings_section_audio">Áudio</string>
+    <string name="settings_section_region">Servidor / Região</string>
+    <string name="settings_section_advanced">Avançado</string>
+    <string name="settings_about">Sobre</string>
+
+    <!-- Stream settings -->
+    <string name="setting_stream_resolution">Resolução</string>
+    <string name="setting_stream_resolution_desc">Força uma resolução específica</string>
+    <string name="setting_stream_codec">Perfil de codec</string>
+    <string name="setting_stream_codec_desc">Qualidade visual do stream</string>
+    <string name="setting_stream_bitrate">Bitrate máximo (Mbps)</string>
+    <string name="setting_stream_bitrate_desc">0 = automático</string>
+    <string name="setting_stream_combine_audio">Combinar fontes de áudio</string>
+    <string name="setting_stream_combine_audio_desc">Mistura áudio do jogo + chat</string>
+    <string name="setting_stream_prevent_drops">Evitar quedas de resolução</string>
+    <string name="setting_stream_prevent_drops_desc">Mantém resolução estável durante o stream</string>
+
+    <!-- Controller -->
+    <string name="setting_touch_mode">Toque na tela</string>
+    <string name="setting_touch_mode_desc">Controles virtuais sobrepostos</string>
+    <string name="setting_touch_opacity">Opacidade padrão dos controles</string>
+    <string name="setting_touch_style_standard">Estilo do controle padrão</string>
+    <string name="setting_gamebar_position">Posição da barra do jogo</string>
+    <string name="setting_mkb_enabled">Mouse &amp; teclado</string>
+    <string name="setting_mkb_enabled_desc">Habilita MKB em jogos suportados</string>
+    <string name="setting_native_mkb_mode">MKB nativo</string>
+    <string name="setting_native_mkb_mode_desc">Suporta mais jogos com MKB real</string>
+
+    <!-- Interface -->
+    <string name="setting_ui_theme">Tema da interface</string>
+    <string name="setting_ui_layout">Layout da interface</string>
+    <string name="setting_ui_controller_friendly">Modo amigável para controle</string>
+    <string name="setting_ui_hide_scrollbar">Ocultar barra de rolagem</string>
+    <string name="setting_ui_skip_splash">Pular vídeo de splash</string>
+    <string name="setting_ui_reduce_animations">Reduzir animações</string>
+    <string name="setting_ui_image_quality">Qualidade da imagem</string>
+    <string name="setting_loading_art">Mostrar arte do jogo ao carregar</string>
+    <string name="setting_loading_wait">Mostrar tempo de espera no loading</string>
+
+    <!-- Audio -->
+    <string name="setting_audio_mic_on_play">Ativar microfone ao jogar</string>
+    <string name="setting_audio_volume_control">Controle de volume avançado</string>
+    <string name="setting_audio_volume_control_desc">Permite amplificar além do máximo</string>
+
+    <!-- Region -->
+    <string name="setting_server_region">Servidor preferido</string>
+    <string name="setting_server_region_desc">Força uma região específica</string>
+    <string name="setting_server_bypass">Ignorar restrição regional</string>
+    <string name="setting_server_bypass_desc">Usa proxy para contornar bloqueios</string>
+    <string name="setting_server_ipv6">Preferir IPv6</string>
+
+    <!-- Advanced -->
+    <string name="setting_block_tracking">Bloquear rastreadores</string>
+    <string name="setting_block_features">Bloquear recursos específicos</string>
+    <string name="setting_screenshot_filters">Aplicar filtros nas screenshots</string>
+    <string name="setting_locale">Idioma do script</string>
+
+    <!-- Stream activity -->
+    <string name="stream_loading">Iniciando stream…</string>
+    <string name="stream_error">Erro no stream. Toque para voltar.</string>
+    <string name="stream_close">Fechar stream</string>
+
+    <!-- Errors -->
+    <string name="error_no_games">Não foi possível carregar a biblioteca.</string>
+    <string name="error_retry">Tentar novamente</string>
+    <string name="error_offline">Sem conexão com a internet</string>
+
+    <!-- About -->
+    <string name="about_version">Versão</string>
+    <string name="about_userscript">Userscript Better xCloud v%1$s</string>
+    <string name="about_github">Ver no GitHub</string>
+    <string name="about_disclaimer">Aviso legal</string>
+    <string name="about_disclaimer_text">Este projeto não é afiliado à Microsoft, Xbox ou redphx. Use apenas com uma assinatura Xbox Game Pass Ultimate válida. Todos os trademarks pertencem à Microsoft.</string>
 </resources>

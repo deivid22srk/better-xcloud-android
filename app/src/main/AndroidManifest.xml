@@ -22,10 +22,6 @@
     <!-- Wake lock to keep screen on while streaming -->
     <uses-permission android:name="android.permission.WAKE_LOCK" />
 
-    <!-- Full screen / immersive -->
-    <uses-permission android:name="android.permission.FULLSCREEN"
-        tools:ignore="Deprecated" />
-
     <!-- Gamepad feature (not required, but advertised) -->
     <uses-feature android:name="android.hardware.gamepad" android:required="false" />
     <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
@@ -39,29 +35,42 @@
         android:hardwareAccelerated="true"
         android:usesCleartextTraffic="false"
         android:networkSecurityConfig="@xml/network_security_config"
-        android:theme="@style/Theme.BetterXCloud"
+        android:theme="@style/Theme.BetterXCloud.Splash"
         tools:targetApi="34">
 
         <activity
             android:name=".MainActivity"
             android:exported="true"
             android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|keyboard|navigation|uiMode|fontScale|density|locale|layoutDirection"
-            android:windowSoftInputMode="adjustResize"
             android:launchMode="singleTask"
-            android:theme="@style/Theme.BetterXCloud">
+            android:theme="@style/Theme.BetterXCloud.Splash">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-
-            <!-- Deep link: open xbox.com/play URIs -->
-            <intent-filter android:autoVerify="false">
-                <action android:name="android.intent.action.VIEW" />
-                <category android:name="android.intent.category.DEFAULT" />
-                <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="https" android:host="www.xbox.com" android:pathPrefix="/play" />
-            </intent-filter>
         </activity>
+
+        <activity
+            android:name=".StreamActivity"
+            android:exported="false"
+            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|keyboard|navigation|uiMode|fontScale|density|locale|layoutDirection"
+            android:screenOrientation="sensorLandscape"
+            android:launchMode="singleTask"
+            android:theme="@style/Theme.BetterXCloud.Stream" />
+
+        <activity
+            android:name=".SettingsActivity"
+            android:exported="false"
+            android:label="@string/settings_title"
+            android:parentActivityName=".MainActivity"
+            android:theme="@style/Theme.BetterXCloud" />
+
+        <activity
+            android:name=".AuthActivity"
+            android:exported="false"
+            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|keyboard|navigation|uiMode|fontScale|density|locale|layoutDirection"
+            android:launchMode="singleTask"
+            android:theme="@style/Theme.BetterXCloud" />
     </application>
 
 </manifest>
